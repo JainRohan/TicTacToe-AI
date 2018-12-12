@@ -1,0 +1,191 @@
+
+package defaultpac;
+
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.border.LineBorder;
+
+public class RohanTicTacToeGame implements ActionListener {
+	public static final boolean DEBUG = false;
+
+	// Setting up the global variables for the # of rows and columns
+	public static final int ROWS = 3;
+	public static final int COLS = 3;
+
+	public Board board;
+	public ComputerPlayer ai = new ComputerPlayer();
+	public HumanPlayer human = new HumanPlayer();
+	public int currentPlayer = Player.HUMAN;
+
+	// GUI Elements
+	public JFrame frame;
+	public JButton squares[][] = new JButton[RohanTicTacToeGame.ROWS][RohanTicTacToeGame.COLS];
+	public JButton clickedSquare;
+
+	// GUI Variables
+	public static final String WINDOW_TITLE = "Tic Tac Toe AI";
+	public static final Dimension WINDOW_SIZE = new Dimension(400, 400);
+
+	// GUI Colors
+	public Color squareColor = new Color(255, 255, 255, 255);
+	public Color borderColor = new Color(41, 128, 185, 255);
+
+	public int c = 0;
+
+	// Main which calls the StartMenu class and the method below
+	public static void main(final String[] args) {
+		StartMenu intro = new StartMenu();
+		intro.Hello();
+		new RohanTicTacToeGame().run();
+	}
+
+	public void run() {
+		// Setting up the JFrame
+		final JFrame frame = new JFrame();
+		frame.setTitle(RohanTicTacToeGame.WINDOW_TITLE);
+		frame.setSize(RohanTicTacToeGame.WINDOW_SIZE);
+		//Setting up the GridLayout 
+		frame.setLayout(new GridLayout(RohanTicTacToeGame.ROWS, RohanTicTacToeGame.COLS));
+
+		//Adds necessary componenets to each of the 9 squares
+		for (int i = 0; i < RohanTicTacToeGame.ROWS; ++i)
+			for (int j = 0; j < RohanTicTacToeGame.COLS; j++) {
+				// Button
+				squares[i][j] = new JButton("");
+				squares[i][j].addActionListener(this);
+				//Colour
+				squares[i][j].setBackground(squareColor);
+				squares[i][j].setFocusPainted(false);
+				//LineBorder
+				squares[i][j].setBorder(new LineBorder(borderColor));
+				//Color
+				squares[i][j].setForeground(new Color(0, 0, 0, 255));
+				frame.add(squares[i][j]);
+			}
+
+		//Setting location and visbility
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
+		board = new Board(ai, human);
+	}
+
+	/*
+	 * This is the actionPerformed method which is used when
+	 * buttons and graphics are being implemented
+	 */
+	@Override
+	public void actionPerformed(final ActionEvent e) {
+		//If clicked on sqaure proceed
+		clickedSquare = (JButton) e.getSource();
+		
+		//Nested for loop goes through entire grid
+		for (int i = 0; i < RohanTicTacToeGame.ROWS; ++i)
+			for (int j = 0; j < RohanTicTacToeGame.COLS; j++)
+				//clicked on any square
+				if (clickedSquare == squares[i][j]) {
+					//Justifying if it is the human or ai turn which alternates every time
+					final Player player = (currentPlayer == Player.HUMAN) ? human : ai;
+
+					// If the player is Human
+					if (currentPlayer == Player.HUMAN)
+						//Makes sures cannot click on the AI moves square
+						if (!((HumanPlayer) player).makeMove(board, i, j))
+							showMessage("Your move is invalid!", 0);
+						else {
+							// If clicked on empty square draw the symbol
+							clickedSquare.setText(String.valueOf(player.getSymbol()));
+							turnPlayer();
+							final Move move = ai.makeMove(board);
+							squares[move.i][move.j].setText(String.valueOf(ai.getSymbol()));
+
+							turnPlayer();
+						}
+				}
+
+		// Call the gameOver method from the Board class for winner declartion
+		final int winner = board.gameOver();
+		
+		/*
+		 * Declaring wins and collecting data for the Analytics
+		 * in the document provided.
+		 */
+		int count = 0;
+		
+		//If its a draw...
+		if (winner == Board.DRAW) {
+			showMessage("Draw! ", 1);
+		// who is the potential winner if no empty values
+		} else if (winner != Board.EMPTY_VAL) { 
+			final Player player = (winner == Player.COMPUTER) ? ai : human;
+			showMessage(player + " is the winner!", 1);
+			// If winner is a human or ai, count the number of games printed in console
+			if (winner == Player.COMPUTER || winner == Player.HUMAN) {
+				count ++;
+				//Declare who is winner in console, for the analytics
+				if (winner == Player.COMPUTER) {
+					System.out.println("AI: " + count);
+				} else {
+					System.out.println("Human: " + count);
+				}
+			}
+		}
+	}
+
+	// Disabling the squares
+	public void disableSquares() {
+		for (int i = 0; i < RohanTicTacToeGame.ROWS; ++i)
+			for (int j = 0; j < RohanTicTacToeGame.COLS; j++)
+				squares[i][j].setEnabled(false);
+	}
+
+	// Sets up the turns which alternates after every move
+	public void turnPlayer() {
+		if (currentPlayer == 1)
+			currentPlayer = 0;
+		else
+			currentPlayer = 1;
+	}
+
+	/*
+	 * Prints the final message
+	 */
+	public void showMessage(final String message, int f) {
+		int gameCount = 0;
+		
+		// The JOptionPane message
+		if (f == 0)
+			JOptionPane.showMessageDialog(frame, message);
+		else {
+			// Options Stored in 1D Array
+			Object[] options = { "New Game", "Exit" };
+			
+			// do not use a custom Icon
+			int n = JOptionPane.showOptionDialog(frame, message + "Would you like a new game?",
+					"Rohan's TicTacToe Game", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, 
+					options, // the titles of buttons
+					options[0]); // default button title
+
+			// If new game is selected increment the number of games played
+			if (n == 0) {
+				gameCount = gameCount + 1;
+				//Print to console
+				System.out.println("Games Played -->  " + gameCount);
+				for (int i = 0; i < RohanTicTacToeGame.ROWS; ++i)
+					for (int j = 0; j < RohanTicTacToeGame.COLS; j++)
+						squares[i][j].setText(null);
+				;
+				//Sets new board if new game is selected
+				board = new Board(ai, human);
+			} else
+				//Exits program if chosen the other option
+				System.exit(0);
+		}
+
+	}
+}
